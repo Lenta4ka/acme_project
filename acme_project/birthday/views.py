@@ -1,8 +1,9 @@
 from django.shortcuts import get_object_or_404, render, redirect
-
+from django.core.paginator import Paginator
 from .forms import BirthdayForm
 from .models import Birthday
 from .utils import calculate_birthday_countdown
+#from django.views.generic import ListView
 
 
 # Добавим опциональный параметр pk.
@@ -18,7 +19,7 @@ def birthday(request, pk=None):
         instance = None
     # Передаём в форму либо данные из запроса, либо None. 
     # В случае редактирования прикрепляем объект модели.
-    form = BirthdayForm(request.POST or None, instance=instance)
+    form = BirthdayForm(request.POST or None, files=request.FILES or None,instance=instance)
     # Остальной код без изменений.
     context = {'form': form}
     # Сохраняем данные, полученные из формы, и отправляем ответ:
@@ -31,10 +32,14 @@ def birthday(request, pk=None):
     return render(request, 'birthday/birthday.html', context) 
     
 def birthday_list(request):
+    birthdays = Birthday.objects.order_by('id')
+    paginator = Paginator(birthdays, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     # Получаем все объекты модели Birthday из БД.
-    birthdays = Birthday.objects.all()
+    #birthdays = Birthday.objects.all()
     # Передаём их в контекст шаблона.
-    context = {'birthdays': birthdays}
+    context = {'page_obj': page_obj}
     return render(request, 'birthday/birthday_list.html', context) 
 
 def delete_birthday(request, pk):
