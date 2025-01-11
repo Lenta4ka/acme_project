@@ -5,7 +5,14 @@ from django.urls import reverse_lazy
 from .forms import BirthdayForm
 from .models import Birthday
 from .utils import calculate_birthday_countdown
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.core.exceptions import PermissionDenied
 
+class OnlyAuthorMixin(UserPassesTestMixin):
+    def test_func(self):
+        object = self.get_object()
+        return object.author == self.request.user 
 
 class BirthdayListView(ListView):
     model = Birthday
@@ -24,16 +31,23 @@ class BirthdayDetailView(DetailView):
         )
         # Возвращаем словарь контекста.
         return context 
-class BirthdayCreateView(CreateView):
+    
+class BirthdayCreateView(CreateView, LoginRequiredMixin):
     model = Birthday
     form_class = BirthdayForm
 
-class BirthdayUpdateView(UpdateView):
+    def form_valid(self, form):
+        # Присвоить полю author объект пользователя из запроса.
+        form.instance.author = self.request.user
+        # Продолжить валидацию, описанную в форме.
+        return super().form_valid(form) 
+
+class BirthdayUpdateView(UpdateView, OnlyAuthorMixin):
     model = Birthday
     form_class = BirthdayForm
 
 
-class BirthdayDeleteView(DeleteView):
+class BirthdayDeleteView(DeleteView, LoginRequiredMixin, OnlyAuthorMixin):
     model = Birthday
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
